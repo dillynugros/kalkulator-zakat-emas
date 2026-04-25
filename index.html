@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Zakat Emas</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel for in-browser JSX transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Custom scrollbar matching original design */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #fdf8f6; /* amber-50ish */
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #fcd34d; /* amber-300 */
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #fbbf24; /* amber-400 */
+        }
+    </style>
+</head>
+<body class="bg-amber-50 antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- SVG ICON COMPONENTS (Replacing lucide-react) ---
+        const SvgIcon = ({ children, className, size = 24, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+                {children}
+            </svg>
+        );
+
+        const Calculator = (p) => <SvgIcon {...p}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></SvgIcon>;
+        const Coins = (p) => <SvgIcon {...p}><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></SvgIcon>;
+        const Scale = (p) => <SvgIcon {...p}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></SvgIcon>;
+        const AlertCircle = (p) => <SvgIcon {...p}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></SvgIcon>;
+        const CheckCircle2 = (p) => <SvgIcon {...p}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></SvgIcon>;
+        const TrendingUp = (p) => <SvgIcon {...p}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></SvgIcon>;
+        const TrendingDown = (p) => <SvgIcon {...p}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></SvgIcon>;
+        const ArrowRightLeft = (p) => <SvgIcon {...p}><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></SvgIcon>;
+        const Trash2 = (p) => <SvgIcon {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></SvgIcon>;
+        const FileText = (p) => <SvgIcon {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></SvgIcon>;
+        const Download = (p) => <SvgIcon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></SvgIcon>;
+        const Wallet = (p) => <SvgIcon {...p}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></SvgIcon>;
+        const PieChart = (p) => <SvgIcon {...p}><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></SvgIcon>;
+        const RotateCcw = (p) => <SvgIcon {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></SvgIcon>;
+        const X = (p) => <SvgIcon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></SvgIcon>;
+        const Upload = (p) => <SvgIcon {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></SvgIcon>;
+        const FileJson = (p) => <SvgIcon {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 12a1 1 0 0 0-1 1v1a1 1 0 0 1-1 1 1 1 0 0 1 1 1v1a1 1 0 0 0 1 1"/><path d="M14 18a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1 1 1 0 0 1-1-1v-1a1 1 0 0 0-1-1"/></SvgIcon>;
+        const CheckSquare = (p) => <SvgIcon {...p}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></SvgIcon>;
+        const Square = (p) => <SvgIcon {...p}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></SvgIcon>;
+
+
+        // --- MAIN APP COMPONENT ---
+        const ZakatGoldApp = () => {
+          // --- KONFIGURASI VERSI ---
+          const APP_VERSION = '2.3.0 HTML';
+
+          // State Input
+          const [transactionType, setTransactionType] = useState('buy');
+          const [inputDate, setInputDate] = useState('');
+          const [inputWeight, setInputWeight] = useState('');
+          const [inputTotalPrice, setInputTotalPrice] = useState('');
+          
+          // State Global
+          const [currentPrice, setCurrentPrice] = useState('');
+          const [transactions, setTransactions] = useState([]);
+          
+          // State Modal Management
+          const [modalState, setModalState] = useState({ type: null, message: '', data: null });
+          
+          // Ref untuk File Input
+          const fileInputRef = useRef(null);
+          
+          // Konstanta Syariat
+          const NISAB_GOLD = 85; // 85 gram
+          const ZAKAT_RATE = 0.025; // 2.5%
+
+          // State Hasil
+          const [summary, setSummary] = useState({
+            investmentWeight: 0,
+            zakatWeight: 0,
+            nisabDate: null,
+            haulDate: null,
+            daysToHaul: 0,
+            status: 'idle',
+            potentialZakat: 0,
+            zakatDue: 0,
+            zakatDueRupiah: 0,
+            averageBuyPrice: 0,
+            portfolioValue: 0,
+            estimatedProfit: 0,
+            profitPercentage: 0,
+            totalCostBasis: 0
+          });
+
+          const formatIDR = (value) => {
+            return new Intl.NumberFormat('id-ID', {
+              style: 'currency',
+              currency: 'IDR',
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }).format(value);
+          };
+
+          const formatDate = (dateString) => {
+            if (!dateString) return '-';
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+          };
+
+          // --- LOGIC HELPER: Hitung Min/Max Harga Beli ---
+          const getMinMaxBuyPrices = () => {
+            const buyTransactions = transactions.filter(t => t.type === 'buy' && t.weight > 0 && t.totalPrice > 0);
+            if (buyTransactions.length === 0) return { max: null, min: null };
+
+            const buysWithUnit = buyTransactions.map(t => ({
+              ...t,
+              unitPrice: t.totalPrice / t.weight
+            }));
+
+            const max = buysWithUnit.reduce((prev, curr) => (prev.unitPrice > curr.unitPrice) ? prev : curr, buysWithUnit[0]);
+            const min = buysWithUnit.reduce((prev, curr) => (prev.unitPrice < curr.unitPrice) ? prev : curr, buysWithUnit[0]);
+
+            return { max, min };
+          };
+
+          const priceStats = getMinMaxBuyPrices();
+
+          // --- LOGIC TAMBAH DATA ---
+          const addTransaction = () => {
+            if (!inputDate || !inputWeight) {
+              setModalState({ type: 'error', message: "Mohon lengkapi Tanggal dan Berat Emas." });
+              return;
+            }
+            const weightVal = parseFloat(inputWeight);
+
+            if (transactionType === 'sell' && weightVal > summary.investmentWeight) {
+              setModalState({ type: 'error', message: `Stok tidak cukup! Saldo saat ini: ${summary.investmentWeight.toFixed(2)} gr.` });
+              return;
+            }
+
+            const newTransaction = {
+              id: Date.now(),
+              type: transactionType,
+              date: inputDate,
+              weight: weightVal,
+              totalPrice: parseFloat(inputTotalPrice) || 0,
+              isZakatPaid: false, 
+            };
+
+            setTransactions([...transactions, newTransaction]);
+            setInputDate(''); setInputWeight(''); setInputTotalPrice('');
+            if (transactionType === 'sell') setTransactionType('buy');
+          };
+
+          const executeRemoveTransaction = (id) => {
+            setTransactions(transactions.filter(t => t.id !== id));
+          };
+
+          // Toggle Status Bayar Zakat
+          const toggleZakatPaid = (id) => {
+            const updatedTransactions = transactions.map(t => {
+              if (t.id === id) {
+                return { ...t, isZakatPaid: !t.isZakatPaid };
+              }
+              return t;
+            });
+            setTransactions(updatedTransactions);
+          };
+
+          // --- LOGIC MODAL & RESET ---
+          const closeModal = () => {
+            setModalState({ type: null, message: '', data: null });
+            if (fileInputRef.current) fileInputRef.current.value = '';
+          };
+
+          const initiateReset = () => {
+            if (transactions.length === 0) return;
+            setModalState({ type: 'reset', message: 'Apakah Anda yakin ingin menghapus semua data?' });
+          };
+
+          const confirmReset = () => {
+            setTransactions([]);
+            closeModal();
+          };
+
+          const initiateRemoveTransaction = (id) => {
+            setModalState({ 
+              type: 'delete_one', 
+              message: 'Apakah Anda yakin ingin menghapus transaksi ini?',
+              data: id 
+            });
+          };
+
+          const confirmRemoveSingle = () => {
+            if (modalState.data) {
+              executeRemoveTransaction(modalState.data);
+              closeModal();
+            }
+          };
+
+          // --- LOGIC UPLOAD / RESTORE ---
+          const handleUploadClick = () => fileInputRef.current.click();
+
+          const handleFileChange = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const content = e.target.result;
+              try {
+                const marker = "[RAW_DATA_DO_NOT_EDIT]";
+                const parts = content.split(marker);
+                if (parts.length > 1) {
+                  const jsonStr = parts[1].trim();
+                  const parsedData = JSON.parse(jsonStr);
+                  if (Array.isArray(parsedData) && parsedData.length > 0) {
+                     const sanitizedData = parsedData.map(item => ({
+                       ...item,
+                       isZakatPaid: item.isZakatPaid !== undefined ? item.isZakatPaid : false
+                     }));
+
+                     if (transactions.length === 0) {
+                       setTransactions(sanitizedData);
+                       setModalState({ type: 'info', message: `Berhasil memulihkan ${sanitizedData.length} transaksi.` });
+                     } else {
+                       setModalState({ type: 'restore_confirm', message: `Ditemukan ${sanitizedData.length} data transaksi dari file.`, data: sanitizedData });
+                     }
+                  } else {
+                    setModalState({ type: 'error', message: "File tidak berisi data transaksi yang valid." });
+                  }
+                } else {
+                  setModalState({ type: 'error', message: "Format file tidak dikenali." });
+                }
+              } catch (error) {
+                setModalState({ type: 'error', message: "File rusak atau tidak valid." });
+              }
+            };
+            reader.readAsText(file);
+          };
+
+          const confirmRestore = (action) => {
+            const newData = modalState.data;
+            if (action === 'replace') {
+              setTransactions(newData);
+              setModalState({ type: 'info', message: "Data berhasil diganti sepenuhnya." });
+            } else if (action === 'merge') {
+              const merged = [...transactions];
+              let countAdded = 0;
+              newData.forEach(newItem => {
+                if (!merged.find(existing => existing.id === newItem.id)) {
+                  merged.push(newItem);
+                  countAdded++;
+                }
+              });
+              setTransactions(merged);
+              setModalState({ type: 'info', message: `Berhasil menggabungkan data. ${countAdded} transaksi baru ditambahkan.` });
+            }
+          };
+
+          // --- LOGIC HITUNG (CORE) ---
+          useEffect(() => {
+            const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // --- 1. Hitung Berat ---
+            const totalBuyInvestment = transactions.filter(t => t.type === 'buy').reduce((s, t) => s + t.weight, 0);
+            const totalSell = transactions.filter(t => t.type === 'sell').reduce((s, t) => s + t.weight, 0);
+            
+            const investmentNetWeight = Math.max(0, totalBuyInvestment - totalSell);
+            const totalBuyZakatEligible = transactions.filter(t => t.type === 'buy' && !t.isZakatPaid).reduce((s, t) => s + t.weight, 0);
+            const zakatNetWeight = Math.max(0, totalBuyZakatEligible - totalSell);
+
+            // --- 2. Logic Nisab & Haul (v1.7) ---
+            let detectedNisabDate = null;
+
+            if (investmentNetWeight >= NISAB_GOLD) {
+              const earliestUnpaidTransaction = sortedTransactions.find(t => t.type === 'buy' && !t.isZakatPaid);
+              if (earliestUnpaidTransaction) {
+                detectedNisabDate = earliestUnpaidTransaction.date;
+              }
+            }
+
+            // --- 3. Logic Profit Investasi ---
+            let sumTotalMoneySpent = 0; 
+            let sumTotalMoneyReceived = 0; 
+            let sumWeightBought = 0;
+            
+            transactions.forEach(t => {
+              if (t.type === 'buy') {
+                sumTotalMoneySpent += (t.totalPrice || 0);
+                sumWeightBought += t.weight;
+              } else if (t.type === 'sell') {
+                sumTotalMoneyReceived += (t.totalPrice || 0);
+              }
+            });
+
+            const averageBuyPrice = sumWeightBought > 0 ? sumTotalMoneySpent / sumWeightBought : 0;
+            const priceNow = parseFloat(currentPrice) || 0;
+            const totalCostBasis = sumTotalMoneySpent - sumTotalMoneyReceived;
+            const portfolioValue = investmentNetWeight * priceNow;
+            const estimatedProfit = portfolioValue - totalCostBasis;
+            const profitPercentage = (totalCostBasis !== 0) ? (estimatedProfit / Math.abs(totalCostBasis)) * 100 : 0;
+
+            // --- 4. Finalisasi Status ---
+            let status = 'below_nisab';
+            let haulDate = null;
+            let daysToHaul = 0;
+            let zakatDue = 0;
+            const potentialZakat = zakatNetWeight * ZAKAT_RATE; 
+
+            if (detectedNisabDate && investmentNetWeight >= NISAB_GOLD) {
+              const nDate = new Date(detectedNisabDate);
+              const hDate = new Date(nDate);
+              hDate.setFullYear(hDate.getFullYear() + 1); 
+              
+              haulDate = hDate.toISOString().split('T')[0];
+              const today = new Date();
+              today.setHours(0,0,0,0);
+              hDate.setHours(0,0,0,0);
+              const diffTime = hDate - today;
+              daysToHaul = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+              if (today >= hDate) {
+                status = 'due';
+                zakatDue = potentialZakat; 
+              } else {
+                status = 'waiting_haul';
+                zakatDue = 0;
+              }
+            } else {
+              status = 'below_nisab';
+            }
+
+            setSummary({
+              totalWeight: totalBuyInvestment, 
+              netWeight: investmentNetWeight, 
+              investmentWeight: investmentNetWeight, 
+              zakatWeight: zakatNetWeight,    
+              nisabDate: detectedNisabDate,
+              haulDate,
+              daysToHaul,
+              status,
+              potentialZakat,
+              zakatDue,
+              zakatDueRupiah: zakatDue * priceNow,
+              averageBuyPrice,
+              portfolioValue,
+              estimatedProfit,
+              profitPercentage,
+              totalCostBasis
+            });
+          }, [transactions, currentPrice]);
+
+          const handleDownloadTxt = () => {
+            const divider = "==============================================\n";
+            const subDivider = "----------------------------------------------\n";
+            let content = divider;
+            content += "          LAPORAN ZAKAT EMAS SYARIAH          \n";
+            content += divider;
+            content += `Tanggal Cetak : ${new Date().toLocaleDateString('id-ID')}\n`;
+            content += `Harga Emas Saat Ini: ${formatIDR(currentPrice || 0)} / gram\n\n`;
+            content += "[ANALISIS PORTOFOLIO (INVESTASI)]\n";
+            content += `Total Emas Fisik: ${summary.investmentWeight.toFixed(2)} gram\n`;
+            content += `Nilai Aset      : ${formatIDR(summary.portfolioValue)}\n`;
+            content += `Estimasi Modal  : ${formatIDR(summary.totalCostBasis)} (Total Beli - Jual)\n`;
+            content += `Estimasi Profit : ${formatIDR(summary.estimatedProfit)} (${summary.profitPercentage.toFixed(2)}%)\n\n`;
+            content += "[STATUS ZAKAT]\n";
+            content += `Emas Wajib Zakat: ${summary.zakatWeight.toFixed(2)} gram (Diluar yang sudah dibayar)\n`;
+            content += `Status Nisab    : ${summary.investmentWeight >= NISAB_GOLD ? "Mencapai Nisab (>=85gr)" : "Belum Nisab (<85gr)"}\n`;
+            if (summary.nisabDate) {
+                content += `Mulai Nisab     : ${formatDate(summary.nisabDate)}\n`;
+                content += `Jatuh Tempo     : ${formatDate(summary.haulDate)}\n`;
+            }
+            content += `Status Wajib    : ${summary.status === 'due' ? "WAJIB BAYAR (SUDAH HAUL)" : "BELUM WAJIB"}\n\n`;
+            if (summary.status === 'due') {
+                content += "[KEWAJIBAN PEMBAYARAN]\n";
+                content += subDivider;
+                content += `Total Zakat (Gram)   : ${summary.zakatDue.toFixed(2)} gr\n`;
+                content += `Total Zakat (Rupiah) : ${formatIDR(summary.zakatDueRupiah)}\n`;
+                content += subDivider;
+                content += "Segera tunaikan zakat Anda.\n\n";
+            }
+            content += "[RIWAYAT TRANSAKSI]\n";
+            if (transactions.length === 0) content += "(Belum ada transaksi)\n";
+            else {
+                transactions.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach((t, index) => {
+                    const typeSymbol = t.type === 'buy' ? '(+)' : '(-)';
+                    const typeText = t.type === 'buy' ? 'Beli' : 'Jual';
+                    const pricePerGram = t.weight > 0 ? t.totalPrice / t.weight : 0;
+                    const paidStatus = t.isZakatPaid ? "[SUDAH ZAKAT]" : "";
+                    const priceInfo = t.totalPrice > 0 ? `Total: ${formatIDR(t.totalPrice)} (@${formatIDR(pricePerGram)}/gr)` : '';
+                    content += `${index + 1}. ${formatDate(t.date)} | ${typeText} ${typeSymbol} ${t.weight}gr ${paidStatus} ${priceInfo ? '| ' + priceInfo : ''}\n`;
+                });
+            }
+            content += "\n\n\n";
+            content += divider;
+            content += "[SYSTEM DATA - JANGAN DIUBAH]\n";
+            content += "Bagian di bawah ini digunakan agar file bisa di-upload kembali ke aplikasi.\n";
+            content += "[RAW_DATA_DO_NOT_EDIT]\n";
+            content += JSON.stringify(transactions);
+
+            const now = new Date();
+            const fileName = `Laporan_Zakat_${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}_${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}.txt`;
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          };
+
+          return (
+            <div className="min-h-screen bg-amber-50 font-sans p-4 md:p-8 flex items-center justify-center relative">
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".txt" className="hidden" />
+
+              {/* GLOBAL MODAL SYSTEM */}
+              {modalState.type && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                  <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-amber-200 scale-100 animate-in zoom-in-95 duration-200">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className={`p-3 rounded-full ${['error', 'delete_one', 'reset'].includes(modalState.type) ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
+                        {modalState.type === 'reset' || modalState.type === 'delete_one' ? <Trash2 className="w-6 h-6" /> : 
+                         modalState.type === 'error' ? <AlertCircle className="w-6 h-6" /> :
+                         modalState.type === 'restore_confirm' ? <FileJson className="w-6 h-6" /> :
+                         <CheckCircle2 className="w-6 h-6" />}
+                      </div>
+                      <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                      {modalState.type === 'reset' ? 'Hapus Semua Data?' : 
+                       modalState.type === 'delete_one' ? 'Hapus Transaksi?' :
+                       modalState.type === 'restore_confirm' ? 'Pulihkan Data?' :
+                       modalState.type === 'error' ? 'Terjadi Kesalahan' : 'Informasi'}
+                    </h3>
+                    <p className="text-sm text-slate-600 mb-6 leading-relaxed">{modalState.message}</p>
+                    <div className="flex flex-col gap-2">
+                      {['reset', 'delete_one'].includes(modalState.type) && (
+                        <div className="flex gap-3">
+                          <button onClick={closeModal} className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200">Batal</button>
+                          <button onClick={modalState.type === 'reset' ? confirmReset : confirmRemoveSingle} className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700">Hapus</button>
+                        </div>
+                      )}
+                      {modalState.type === 'restore_confirm' && (
+                        <div className="space-y-2">
+                          <button onClick={() => confirmRestore('merge')} className="w-full px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700">Gabungkan Data</button>
+                          <button onClick={() => confirmRestore('replace')} className="w-full px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 border border-slate-300">Ganti Data Lama</button>
+                        </div>
+                      )}
+                      {(modalState.type === 'info' || modalState.type === 'error') && (
+                        <button onClick={closeModal} className="w-full px-4 py-2 bg-slate-800 text-white font-medium rounded-lg hover:bg-slate-900">Tutup</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="max-w-7xl w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-amber-200 flex flex-col">
+                {/* Header - DECORATED */}
+                <div className="bg-amber-600 p-6 text-white relative overflow-hidden shrink-0 flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div className="absolute inset-0 pointer-events-none">
+                    <svg className="absolute inset-0 w-full h-full opacity-10" width="100%" height="100%">
+                      <defs>
+                        <pattern id="motif-diamond" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                          <path d="M20 0L40 20L20 40L0 20Z" fill="none" stroke="currentColor" className="text-amber-300" strokeWidth="1.5" />
+                          <circle cx="20" cy="20" r="3" fill="currentColor" className="text-amber-100" />
+                        </pattern>
+                      </defs>
+                      <rect width="100%" height="100%" fill="url(#motif-diamond)" />
+                    </svg>
+                    <Coins className="absolute -right-8 -bottom-10 w-56 h-56 text-amber-400 opacity-20 rotate-12 transform origin-bottom-right" />
+                    <Scale className="absolute -left-10 -top-10 w-48 h-48 text-amber-200 opacity-20 -rotate-12 transform origin-top-left" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-amber-800/40 to-transparent"></div>
+                  </div>
+
+                  <div className="relative z-10 text-center md:text-left">
+                    <h1 className="text-2xl font-bold flex items-center justify-center md:justify-start gap-2 text-white">
+                      <Calculator className="w-6 h-6" /> Kalkulator Zakat Emas
+                    </h1>
+                    <p className="text-amber-100 text-sm opacity-90">Investasi & Kewajiban Syariah</p>
+                    <p className="text-amber-200 text-xs mt-1 opacity-75">versi {APP_VERSION}</p>
+                  </div>
+                  
+                  <div className="relative z-10 flex gap-2">
+                    <button onClick={handleUploadClick} className="flex items-center gap-2 bg-stone-600 text-stone-50 px-4 py-2.5 rounded-lg font-semibold hover:bg-stone-700 transition-all shadow-md active:scale-95 border border-stone-500">
+                      <Upload className="w-4 h-4" /> Restore Data
+                    </button>
+                    <button onClick={handleDownloadTxt} className="flex items-center gap-2 bg-white text-amber-800 px-5 py-2.5 rounded-lg font-bold hover:bg-amber-50 transition-all shadow-lg active:scale-95">
+                      <Download className="w-4 h-4" /> Download Laporan
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col lg:flex-row flex-grow">
+                  {/* KOLOM 1: INPUT */}
+                  <div className="w-full lg:w-1/3 p-6 space-y-6 border-b lg:border-b-0 lg:border-r border-amber-100 bg-amber-50">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-amber-200">
+                      <label className="block text-xs font-bold text-amber-900 uppercase mb-2">Harga Emas Saat Ini (Per Gram)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-gray-400 font-bold">Rp</span>
+                        <input type="number" value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} placeholder="0" className="pl-10 block w-full rounded-lg border-amber-200 focus:ring-amber-500 focus:border-amber-500 p-2 bg-amber-50/50" />
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-2">*Wajib diisi untuk analisis profit & nominal zakat</p>
+                    </div>
+
+                    <div className={`p-5 rounded-xl shadow-sm border transition-all ${transactionType === 'buy' ? 'bg-white border-amber-200' : 'bg-red-50 border-red-200'}`}>
+                      <div className="flex bg-amber-50/50 p-1 rounded-lg mb-5">
+                        <button onClick={() => setTransactionType('buy')} className={`flex-1 py-1.5 rounded text-sm font-medium transition-all ${transactionType === 'buy' ? 'bg-white text-amber-800 shadow' : 'text-slate-500'}`}>Beli</button>
+                        <button onClick={() => setTransactionType('sell')} className={`flex-1 py-1.5 rounded text-sm font-medium transition-all ${transactionType === 'sell' ? 'bg-white text-red-600 shadow' : 'text-slate-500'}`}>Jual</button>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-xs font-medium text-slate-500">Tanggal Transaksi</label>
+                          <input type="date" value={inputDate} onChange={(e) => setInputDate(e.target.value)} className="block w-full mt-1 rounded-md border-amber-200 shadow-sm focus:border-amber-500 sm:text-sm p-2 border" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-500">Berat (Gram)</label>
+                          <input type="number" value={inputWeight} onChange={(e) => setInputWeight(e.target.value)} placeholder="0" className="block w-full mt-1 rounded-md border-amber-200 shadow-sm focus:border-amber-500 sm:text-sm p-2 border" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-500">Total Harga Pembelian (Rupiah)</label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-2.5 text-gray-400 text-xs font-bold">Rp</span>
+                            <input type="number" value={inputTotalPrice} onChange={(e) => setInputTotalPrice(e.target.value)} placeholder="Total uang yang dikeluarkan..." className="pl-8 block w-full mt-1 rounded-md border-amber-200 shadow-sm focus:border-amber-500 sm:text-sm p-2 border" />
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-1">Masukkan total nominal rupiah untuk transaksi ini.</p>
+                        </div>
+                        <button onClick={addTransaction} className={`w-full py-2.5 rounded-lg text-white font-medium shadow-md hover:shadow-lg transition-all ${transactionType === 'buy' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-red-600 hover:bg-red-700'}`}>
+                          {transactionType === 'buy' ? 'Simpan Data' : 'Simpan Data'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* KOLOM 2: DAFTAR TRANSAKSI */}
+                  <div className="w-full lg:w-1/3 p-6 border-b lg:border-b-0 lg:border-r border-amber-100 flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-bold text-amber-900 flex items-center gap-2"><ArrowRightLeft className="w-4 h-4" /> Riwayat Mutasi Emas</h3>
+                      {transactions.length > 0 && (
+                        <button onClick={initiateReset} className="text-[10px] flex items-center gap-1 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-full transition-colors border border-red-100" title="Hapus semua riwayat">
+                          <RotateCcw className="w-3 h-3" /> Reset Data
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex-grow overflow-y-auto max-h-[500px] space-y-3 pr-2 custom-scrollbar">
+                      {transactions.length === 0 ? (
+                        <div className="text-center py-12 bg-amber-50 rounded-xl border-2 border-dashed border-amber-200">
+                          <p className="text-amber-800/50 text-sm">Belum ada data</p>
+                        </div>
+                      ) : (
+                        transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).map((t) => {
+                          const pricePerGram = t.weight > 0 ? t.totalPrice / t.weight : 0;
+                          return (
+                            <div key={t.id} className={`flex justify-between items-center p-3 rounded-lg border shadow-sm group hover:border-amber-300 transition-all ${t.isZakatPaid ? 'bg-amber-50 border-amber-100 opacity-60' : 'bg-white border-amber-100'}`}>
+                              <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-full ${t.type === 'buy' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'}`}>
+                                  {t.type === 'buy' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className={`font-bold text-sm ${t.type === 'buy' ? 'text-amber-900' : 'text-red-900'}`}>{t.type === 'buy' ? 'Beli' : 'Jual'} {t.weight} gr</p>
+                                  </div>
+                                  <p className="text-xs text-slate-500">{formatDate(t.date)}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                 {t.totalPrice > 0 ? (
+                                   <>
+                                     <span className="text-xs font-bold text-slate-700 block">{formatIDR(t.totalPrice)}</span>
+                                     <span className="text-[10px] text-slate-400 block">(@ {formatIDR(pricePerGram)}/gr)</span>
+                                   </>
+                                 ) : <span className="text-xs text-slate-400">-</span>}
+                                 
+                                 {/* Action Buttons Container */}
+                                 <div className="flex justify-end items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                   {t.type === 'buy' && (
+                                      <button 
+                                        onClick={() => toggleZakatPaid(t.id)}
+                                        className={`p-1 rounded transition-colors ${t.isZakatPaid ? 'text-amber-500 hover:text-amber-600' : 'text-slate-300 hover:text-amber-500'}`}
+                                        title={t.isZakatPaid ? "Zakat sudah dibayar (Klik untuk batal)" : "Klik untuk tandai sudah zakat"}
+                                      >
+                                        {t.isZakatPaid ? <CheckSquare size={14} /> : <Square size={14} />}
+                                      </button>
+                                   )}
+                                   <button onClick={() => initiateRemoveTransaction(t.id)} className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                     <Trash2 size={14} />
+                                   </button>
+                                 </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                    
+                    {/* PRICE SUMMARY SECTION */}
+                    {transactions.length > 0 && (
+                       <div className="mt-4 pt-4 border-t border-amber-200 space-y-2">
+                         
+                         {/* Rata-rata */}
+                         <div className="flex justify-between items-center p-2 border border-amber-200 bg-amber-50/50 rounded-lg">
+                           <span className="text-xs text-amber-800 font-medium">Rata-rata Harga Beli</span>
+                           <span className="font-bold text-amber-900 text-sm">{formatIDR(summary.averageBuyPrice)}/gr</span>
+                         </div>
+
+                         {/* Harga Tertinggi */}
+                         {priceStats.max && (
+                           <div className="flex justify-between items-center p-2 border border-amber-200 bg-amber-50/30 rounded-lg">
+                              <div className="flex flex-col">
+                                <span className="text-xs text-amber-800 font-medium">Harga Tertinggi</span>
+                                <span className="text-[10px] text-amber-700/60 mt-0.5">{formatDate(priceStats.max.date)}</span>
+                              </div>
+                              <span className="font-bold text-amber-900 text-sm">{formatIDR(priceStats.max.unitPrice)}/gr</span>
+                           </div>
+                         )}
+
+                         {/* Harga Terendah */}
+                         {priceStats.min && (
+                           <div className="flex justify-between items-center p-2 border border-amber-200 bg-amber-50/30 rounded-lg">
+                              <div className="flex flex-col">
+                                <span className="text-xs text-amber-800 font-medium">Harga Terendah</span>
+                                <span className="text-[10px] text-amber-700/60 mt-0.5">{formatDate(priceStats.min.date)}</span>
+                              </div>
+                              <span className="font-bold text-amber-900 text-sm">{formatIDR(priceStats.min.unitPrice)}/gr</span>
+                           </div>
+                         )}
+                       </div>
+                    )}
+                  </div>
+
+                  {/* KOLOM 3: HASIL & TABEL KEWAJIBAN */}
+                  <div className="w-full lg:w-1/3 p-6 bg-white flex flex-col overflow-y-auto">
+                    
+                    {/* INVESTMENT ANALYSIS CARD */}
+                    <div className="mb-6">
+                       <h3 className="font-bold text-amber-900 mb-3 flex items-center gap-2"><Wallet className="w-5 h-5 text-amber-600" /> Analisis Investasi</h3>
+                       <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-5 rounded-2xl relative overflow-hidden shadow-lg mb-4">
+                         <div className="relative z-10 grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                              <p className="text-amber-100/80 text-[10px] font-bold uppercase tracking-wider mb-1">Total Nilai Aset (Saat Ini)</p>
+                              <div className="text-3xl font-bold text-amber-50">{formatIDR(summary.portfolioValue)}</div>
+                            </div>
+                            <div>
+                              <p className="text-amber-100/60 text-[10px] uppercase mb-1">Estimasi Modal</p>
+                              <p className="text-sm font-medium text-slate-200">{formatIDR(summary.totalCostBasis)}</p>
+                            </div>
+                            <div>
+                              <p className="text-amber-100/60 text-[10px] uppercase mb-1">Profit / Loss</p>
+                              <div className={`text-sm font-bold flex items-center gap-1 ${summary.estimatedProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                 {summary.estimatedProfit >= 0 ? '+' : ''}{formatIDR(summary.estimatedProfit)}
+                              </div>
+                              <span className={`text-xs ${summary.estimatedProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                ({summary.estimatedProfit >= 0 ? '+' : ''}{summary.profitPercentage.toFixed(2)}%)
+                              </span>
+                            </div>
+                         </div>
+                         <PieChart className="absolute -right-6 -bottom-6 text-amber-500 w-32 h-32 opacity-10" />
+                       </div>
+                    </div>
+
+                    <h3 className="font-bold text-amber-900 mb-4 flex items-center gap-2 pt-4 border-t border-amber-100"><Scale className="w-5 h-5 text-amber-600" /> Status Zakat</h3>
+                    
+                    <div className="space-y-4">
+                        <div className="border border-amber-200 rounded-xl p-4 space-y-3 bg-amber-50">
+                          <div className="flex justify-between items-center pb-2 border-b border-amber-200">
+                            <span className="text-amber-800 text-sm font-medium">Saldo Emas Bersih (Wajib Zakat)</span>
+                            <span className="font-bold text-lg text-amber-900">{summary.zakatWeight.toFixed(2)} gr</span>
+                          </div>
+                          {/* Info tambahan jika ada yang di-exclude */}
+                          {summary.investmentWeight > summary.zakatWeight && (
+                            <p className="text-[10px] text-amber-700/70 text-right italic">
+                              *Total fisik {summary.investmentWeight.toFixed(2)} gr. ({summary.investmentWeight - summary.zakatWeight} gr ditandai sudah zakat)
+                            </p>
+                          )}
+                          
+                          <div className="flex justify-between text-sm">
+                            <span className="text-amber-800">Mulai Nisab (85gr):</span>
+                            <span className="font-medium text-amber-900">{formatDate(summary.nisabDate)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-amber-800">Jatuh Tempo (Haul):</span>
+                            <span className="font-medium text-amber-900">{formatDate(summary.haulDate)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm items-center pt-2">
+                            <span className="text-amber-800">Status Waktu:</span>
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${summary.status === 'due' ? 'bg-red-100 text-red-700' : 'bg-amber-200 text-amber-800'}`}>
+                              {summary.status === 'due' ? 'SUDAH HAUL' : summary.status === 'waiting_haul' ? 'MENUNGGU HAUL' : 'BELUM NISAB'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {summary.status === 'due' && (
+                          <div className="animate-in fade-in slide-in-from-bottom-4">
+                            <div className="flex items-center gap-2 mb-2 text-amber-900 font-bold">
+                               <FileText className="w-4 h-4 text-amber-700"/>
+                               <span>Tabel Rincian Zakat</span>
+                            </div>
+                            <table className="w-full text-sm border-collapse border border-amber-200">
+                              <tbody className="divide-y divide-amber-100">
+                                <tr className="bg-amber-50">
+                                  <td className="p-3 font-bold text-amber-800">Total Zakat (Gram)</td>
+                                  <td className="p-3 text-right font-bold text-amber-900 text-base">{summary.zakatDue.toFixed(2)} gr</td>
+                                </tr>
+                                <tr className="bg-amber-100">
+                                  <td className="p-3 font-bold text-amber-800">Total Rupiah</td>
+                                  <td className="p-3 text-right font-bold text-amber-900 text-lg">{formatIDR(summary.zakatDueRupiah)}</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                            <div className="mt-3 p-2 bg-red-50 border border-red-100 rounded text-[10px] text-red-700 flex gap-2">
+                               <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
+                               <p>Wajib ditunaikan karena telah mencapai 1 tahun (Haul).</p>
+                            </div>
+                          </div>
+                        )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ZakatGoldApp />);
+    </script>
+</body>
+</html>
